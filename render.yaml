@@ -1,6 +1,9 @@
 services:
   - type: web
-    name: grape-disease-app
+    name: grape-disease-detector
     env: python
     buildCommand: ""
-    startCommand: gunicorn app:app
+    startCommand: python app.py
+    envVars:
+      - key: FLASK_ENV
+        value: production

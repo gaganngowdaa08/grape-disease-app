@@ -45,6 +45,10 @@ def home():
                 print(f"Error deleting file {f}: {e}")
     return render_template('main.html')
 
+@app.route('/test')
+def test_home():
+    return "Test route working!"
+
 @app.route('/predict', methods=['POST'])
 def predict():
     if 'image' not in request.files:
