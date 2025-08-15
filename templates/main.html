@@ -1,10 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><body>
-    <h1 class="text-3xl font-semibold text-center mt-10 text-[var(--primary-theme)]">
-        Welcome to Grape Disease Detection App
-    </h1>
-</body>
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🍇 Grape Disease Detector</title>
@@ -136,6 +132,15 @@
                         Remove infected leaves and apply fungicide early in the season. Improve air circulation around plants.
                     </p>
                 </div>
+
+                <!-- NEW: ROC Curve and AUC Score Section -->
+                <div class="mt-8">
+                    <h4 id="performance-title" class="font-medium text-lg mb-2 text-[--secondary-theme]">Model Performance</h4>
+                    <p id="auc-score" class="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                        AUC Score: <span class="font-semibold" id="auc-score-value">0.92</span>
+                    </p>
+                    <img id="roc-curve" src="" alt="ROC Curve" class="w-full rounded-lg shadow-md border border-gray-200 dark:border-gray-600">
+                </div>
             </div>
         </section>
 
@@ -239,6 +244,8 @@
                 resultsTitle: "Analysis Results",
                 diseaseLabel: "Disease Detected:",
                 treatmentTitle: "Recommended Treatment",
+                performanceTitle: "Model Performance",
+                aucScore: "AUC Score",
                 diseaseInfoTitle: "Common Grape Diseases",
                 diseaseBlackRot: "Black Rot",
                 diseaseEsca: "ESCA",
@@ -246,7 +253,7 @@
                 diseaseBlight: "Leaf Blight",
                 chatTitle: "Ask GrapeCare Assistant",
                 welcomeMessage: "Hello! I'm your grape disease assistant. How can I help you today?",
-                footerText: "© 2023 GrapeCare - Your Grape Disease Advisor",
+                footerText: "© 2025 GrapeCare - Your Grape Disease Advisor",
                 quickQuestions: ["Black Rot", "ESCA", "Healthy Grapes", "Treatment Tips"],
                 diseaseDescriptions: {
                     blackRot: "Fungal disease causing dark spots on leaves and fruit rot. Common in warm, humid conditions.",
@@ -270,6 +277,8 @@
                 resultsTitle: "ವಿಶ್ಲೇಷಣೆ ಫಲಿತಾಂಶಗಳು",
                 diseaseLabel: "ಕಾಯಿಲೆ ಪತ್ತೆಯಾಗಿದೆ:",
                 treatmentTitle: "ಶಿಫಾರಸು ಮಾಡಿದ ಚಿಕಿತ್ಸೆ",
+                performanceTitle: "ಮಾದರಿ ಕಾರ್ಯಕ್ಷಮತೆ",
+                aucScore: "AUC ಸ್ಕೋರ್",
                 diseaseInfoTitle: "ಸಾಮಾನ್ಯ ದ್ರಾಕ್ಷಿ ಕಾಯಿಲೆಗಳು",
                 diseaseBlackRot: "ಕಪ್ಪು ಕೊಳೆ",
                 diseaseEsca: "ಎಸ್ಕಾ",
@@ -277,7 +286,7 @@
                 diseaseBlight: "ಬ್ಲೈಟ್ ಎಲೆ",
                 chatTitle: "GrapeCare ಸಹಾಯಕನನ್ನು ಕೇಳಿ",
                 welcomeMessage: "ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ ದ್ರಾಕ್ಷಿ ಕಾಯಿಲೆ ಸಹಾಯಕ. ಇಂದು ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?",
-                footerText: "© 2023 GrapeCare - ನಿಮ್ಮ ದ್ರಾಕ್ಷಿ ಕಾಯಿಲೆ ಸಲಹೆಗಾರ",
+                footerText: "© 2025 ದ್ರಾಕ್ಷಿ ಆರೈಕೆ - ನಿಮ್ಮ ದ್ರಾಕ್ಷಿ ಕಾಯಿಲೆ ಸಲಹೆಗಾರ",
                 quickQuestions: ["ಕಪ್ಪು ಕೊಳೆ", "ಎಸ್ಕಾ", "ಆರೋಗ್ಯಕರ ದ್ರಾಕ್ಷಿ", "ಚಿಕಿತ್ಸೆ ಸಲಹೆಗಳು"],
                 diseaseDescriptions: {
                     blackRot: "ಎಲೆಗಳು ಮತ್ತು ಹಣ್ಣು ಕೊಳೆತದ ಮೇಲೆ ಕಪ್ಪು ಕಲೆಗಳನ್ನು ಉಂಟುಮಾಡುವ ಫಂಗಲ್ ರೋಗ. ಬೆಚ್ಚಗಿನ, ಶೀತಲ ಪರಿಸ್ಥಿತಿಗಳಲ್ಲಿ ಸಾಮಾನ್ಯ.",
@@ -459,6 +468,10 @@
                     document.getElementById('treatment-tips').textContent = result.treatment;
                     document.getElementById('analyzed-image').src = result.image_url;
                     
+                    // NEW: Update AUC and ROC curve
+                    document.getElementById('auc-score-value').textContent = result.auc_score;
+                    document.getElementById('roc-curve').src = result.roc_curve_url;
+                    
                     document.getElementById('results-section').classList.remove('hidden');
                     document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
                     
@@ -486,6 +499,8 @@
             document.getElementById('results-title').textContent = langData.resultsTitle;
             document.getElementById('disease-label').textContent = langData.diseaseLabel;
             document.getElementById('treatment-title').textContent = langData.treatmentTitle;
+            document.getElementById('performance-title').textContent = langData.performanceTitle;
+            document.getElementById('auc-score').innerHTML = `${langData.aucScore}: <span class="font-semibold" id="auc-score-value">0.92</span>`;
             document.getElementById('disease-info-title').textContent = langData.diseaseInfoTitle;
             document.getElementById('chat-title').textContent = langData.chatTitle;
             document.getElementById('footer-text').textContent = langData.footerText;

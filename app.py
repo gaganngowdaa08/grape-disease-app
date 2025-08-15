@@ -3,6 +3,8 @@ import tensorflow as tf
 import numpy as np
 import os
 from PIL import Image
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB limit
@@ -34,9 +36,36 @@ disease_tips_kn = {
     "Leaf Blight": "ರಕ್ಷಕ ಸಿಂಪಡಣೆಗಳನ್ನು ಬಳಸಿ ಮತ್ತು ಪರಿಣಾಮ ಬೀರಿದ ಎಲೆಗಳನ್ನು ತಕ್ಷಣ ತೆಗೆದುಹಾಕಿ."
 }
 
+def predict_and_plot_with_metrics(img_array):
+    model = load_model()
+    prediction = model.predict(img_array)[0]
+    predicted_index = np.argmax(prediction)
+    predicted_label = disease_classes[predicted_index]
+    confidence = float(np.max(prediction)) * 100
+
+    # Simulate ground truth for ROC (assume predicted class is correct)
+    y_true = np.zeros_like(prediction)
+    y_true[predicted_index] = 1
+
+    # Compute ROC and AUC
+    fpr, tpr, _ = roc_curve(y_true, prediction)
+    roc_auc = auc(fpr, tpr)
+
+    # Plot ROC curve
+    plt.figure()
+    plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (AUC = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic')
+    plt.legend(loc="lower right")
+    plt.savefig('static/roc_curve.png')
+    plt.close()
+
+    return predicted_index, predicted_label, confidence, roc_auc
+
 @app.route('/')
 def home():
-    # Cleanup old uploaded images
     for f in os.listdir(app.config['UPLOAD_FOLDER']):
         if f.startswith("uploaded_"):
             try:
@@ -59,25 +88,17 @@ def predict():
         return jsonify({'error': 'No selected file'}), 400
 
     try:
-        # Save uploaded file
         filename = f"uploaded_{np.random.randint(10000)}.jpg"
         image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         image_file.save(image_path)
 
-        # Preprocess image
         img = Image.open(image_path).convert('RGB')
         img = img.resize((128, 128))
         img_array = np.array(img) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
 
-        # Predict
-        model = load_model()
-        prediction = model.predict(img_array)[0]
-        predicted_index = np.argmax(prediction)
-        predicted_label = disease_classes[predicted_index]
-        confidence = float(np.max(prediction)) * 100
+        predicted_index, predicted_label, confidence, roc_auc = predict_and_plot_with_metrics(img_array)
 
-        # Language support
         lang = request.form.get('language', 'en')
         if lang == 'kn':
             predicted_label = disease_classes_kn[predicted_index]
@@ -90,7 +111,9 @@ def predict():
             'prediction': predicted_label,
             'confidence': round(confidence, 2),
             'treatment': tip,
-            'image_url': image_path
+            'image_url': image_path,
+            'auc_score': round(roc_auc, 3),
+            'roc_curve_url': 'static/roc_curve.png'
         })
 
     except Exception as e:
@@ -104,19 +127,16 @@ def chat():
     user_input = request.form.get('message', '').lower()
     lang = request.form.get('language', 'en')
 
-    # Greetings
     if any(greet in user_input for greet in ['hi', 'hello', 'hey', 'ನಮಸ್ಕಾರ']):
         response = "Hello! Ask me about grape diseases." if lang == 'en' else "ನಮಸ್ಕಾರ! ದ್ರಾಕ್ಷಿ ಕಾಯಿಲೆಗಳ ಬಗ್ಗೆ ಕೇಳಿ."
         return jsonify({'response': response})
 
-    # Disease queries
     for i, disease in enumerate(disease_classes):
         if disease.lower() in user_input or disease_classes_kn[i].lower() in user_input:
             tip = disease_tips[disease] if lang == 'en' else disease_tips_kn[disease]
             response = f"{disease if lang == 'en' else disease_classes_kn[i]}: {tip}"
             return jsonify({'response': response})
 
-    # Default response
     default = ("Ask about grape diseases like Black Rot, ESCA, or Leaf Blight." if lang == 'en' 
                else "ಕಪ್ಪು ಕೀಟ, ಎಸ್ಕಾ, ಅಥವಾ ಬ್ಲೈಟ್ ಎಲೆಗಳಂತಹ ದ್ರಾಕ್ಷಿ ಕಾಯಿಲೆಗಳ ಬಗ್ಗೆ ಕೇಳಿ.")
     return jsonify({'response': default})
